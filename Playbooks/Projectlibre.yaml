@@ -1,0 +1,14 @@
+---
+- name: Install projectlibre on target nodes
+  hosts: all
+  become: true
+  tasks:
+    - name: Install snapd
+      apt:
+        name: snapd
+        state: present
+
+    - name: Install projectlibre
+      snap:
+        name: projectlibre
+        state: present

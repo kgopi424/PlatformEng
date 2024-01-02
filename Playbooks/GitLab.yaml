@@ -1,0 +1,41 @@
+---
+ - name: Install gitlab on target nodes
+   hosts: all
+   tasks:
+
+      - name: Install curl, openssh-server, ca-certificates, postfix
+        become: true
+        apt:
+          name: "{{ item }}"
+          state: present
+        loop:
+          - curl
+          - openssh-server
+          - ca-certificates
+          - postfix
+      
+      - name: Downlaad packages
+        shell: curl -LO https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh
+
+      - name: Run bash script
+        become: true
+        shell: sudo bash script.deb.sh
+
+      - name: Install gitlab-ce
+        become: true
+        apt:
+          name: gitlab-ce
+          state: present
+      
+      - name: Configure gitlab
+        become: true
+        shell: sudo gitlab-ctl reconfigure
+
+      - name: Get the gitlab version details
+        become: true
+        shell: sudo gitlab-rake gitlab:env:info
+        register: gitlab_version
+
+      - name: Display details
+        debug:
+          var: gitlab_version

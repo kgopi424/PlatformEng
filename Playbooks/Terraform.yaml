@@ -1,0 +1,62 @@
+- name: Install AWS CLI, Terraform, and unzip
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Check if unzip is installed
+      stat:
+        path: /usr/bin/unzip
+      register: unzip_check
+
+    - name: Install unzip if not already installed
+      apt:
+        name: unzip
+        state: present
+      when: not unzip_check.stat.exists
+
+    - name: Check if AWS CLI is installed
+      stat:
+        path: /usr/local/bin/aws
+      register: aws_cli_check
+
+    - name: Download AWS CLI if not already installed
+      command: "curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip"
+      args:
+        chdir: /tmp
+      when: not aws_cli_check.stat.exists
+
+    - name: Unzip AWS CLI if not already installed
+      command: "unzip awscliv2.zip"
+      args:
+        chdir: /tmp
+      when: not aws_cli_check.stat.exists
+
+    - name: Install AWS CLI if not already installed
+      command: "sudo bash /tmp/aws/install"
+      when: not aws_cli_check.stat.exists
+
+    - name: Check if Terraform is installed
+      stat:
+        path: /usr/local/bin/terraform
+      register: terraform_check
+
+    - name: Install Terraform dependencies
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - gnupg
+        - software-properties-common
+        - curl
+
+    - name: Add HashiCorp GPG key
+      shell: >
+        echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
+
+    - name: Update package cache
+      shell: apt update
+    - name: Install Terraform if not already installed
+      apt:
+        name: terraform
+        state: present
+      when: not terraform_check.stat.exists

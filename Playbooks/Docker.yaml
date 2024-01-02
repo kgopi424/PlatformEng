@@ -1,0 +1,7 @@
+---
+- name: Install docker
+  hosts: all  
+  become: true
+  tasks:
+    - name: Install docker
+      shell: curl https://get.docker.com | sudo bash

@@ -1,0 +1,39 @@
+--- 
+- name: Install MongoDB in target nodes
+  hosts: all
+  tasks:
+    - name: Installing curl and gnupg
+      become: true
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - curl
+        - gnupg
+
+    - name: Import MongoDB GPG key
+      become: true
+      apt_key:
+        url: https://www.mongodb.org/static/pgp/server-6.0.asc
+        state: present
+
+    - name: Configure MongoDB Repo
+      shell: echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+
+    - name: Update nodes
+      become: true
+      apt:
+        update_cache: yes
+
+    - name: Install MongoDB 
+      become: true
+      apt:
+        name: mongodb-org 
+        state: present
+
+    - name: Start and enable mongodb 
+      become: true
+      systemd:
+        name: mongod
+        state: started
+        enabled: yes

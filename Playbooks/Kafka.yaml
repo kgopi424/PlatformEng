@@ -1,0 +1,91 @@
+---
+ - name: Install kafka in target nodes
+   hosts: all
+   tasks:
+      - name: Install default-jdk
+        become: true
+        apt:
+          name: default-jdk
+          state: present
+      
+      - name: Download packages
+        shell: wget https://downloads.apache.org/kafka/3.5.1/kafka_2.13-3.5.1.tgz
+
+      - name: Extract files
+        shell: tar -xvzf kafka_2.13-3.5.1.tgz 
+
+      - name: Move files 
+        become: true
+        shell: sudo mv kafka_2.13-3.5.1 /usr/local/kafka 
+
+      - name: copy content to zookeeper service files
+        become: true
+        copy:
+          content: | 
+              [Unit]
+              Description=Apache Zookeeper server
+              Documentation=http://zookeeper.apache.org
+              Requires=network.target remote-fs.target
+              After=network.target remote-fs.target
+
+              [Service]
+              Type=simple
+              ExecStart=/usr/local/kafka/bin/zookeeper-server-start.sh /usr/local/kafka/config/zookeeper.properties
+              ExecStop=/usr/local/kafka/bin/zookeeper-server-stop.sh
+              Restart=on-abnormal
+
+              [Install]
+              WantedBy=multi-user.target
+          dest: /etc/systemd/system/zookeeper.service
+
+      - name: Copy content to kafka service files
+        become: true
+        copy:
+          content: |
+              [Unit]
+              Description=Apache Kafka Server
+              Documentation=http://kafka.apache.org/documentation.html
+              Requires=zookeeper.service
+
+              [Service]
+              Type=simple
+              Environment="JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
+              ExecStart=/usr/local/kafka/bin/kafka-server-start.sh /usr/local/kafka/config/server.properties
+              ExecStop=/usr/local/kafka/bin/kafka-server-stop.sh
+
+              [Install]
+              WantedBy=multi-user.target
+          dest: /etc/systemd/system/kafka.service 
+
+      - name: Daemon-reload
+        become: true
+        systemd:
+          daemon-reload: yes
+
+      - name: Start zookeeper and kafka
+        become: true
+        service:
+          name: "{{ item }}"
+          enabled: yes
+          state: started
+        loop:
+          - zookeeper
+          - kafka
+
+      - name: Get status of zookeeper
+        become: true
+        shell: sudo systemctl status zookeeper 
+        register: zookeeper_status
+
+      - name: Display zookeeper_status
+        debug:
+          var: zookeeper_status.stdout_lines
+
+      - name: Get status of kafka
+        become: true
+        shell: sudo systemctl status kafka
+        register: kafka_status
+
+      - name: Display kafka status
+        debug:
+          var: kafka_status.stdout_lines

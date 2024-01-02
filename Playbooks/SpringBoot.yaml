@@ -1,0 +1,30 @@
+---
+- name: Install Spring Boot
+  hosts: all
+  become: true
+  tasks:
+    - name: Install jdk, zip, unzip
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - default-jdk
+        - zip
+        - unzip
+
+    - name: Install SDKMAN
+      shell: >
+        curl -s "https://get.sdkman.io" | bash
+      args:
+        executable: /bin/bash
+
+    - name: Source SDKMAN! initialization script and install Spring Boot
+      shell: >
+        source "$HOME/.sdkman/bin/sdkman-init.sh" && sdk install springboot
+      args:
+        executable: /bin/bash
+      register: logs
+
+    - name: Display status
+      debug:
+        var: logs

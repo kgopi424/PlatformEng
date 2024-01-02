@@ -1,0 +1,15 @@
+---
+- name: Install maven
+  hosts: all
+  become: true
+  tasks:
+    - name: Install openjdk
+      become: true
+      apt:
+        name: openjdk-11-jre
+        state: present
+        
+    - name: Install maven
+      apt:
+        name: maven
+        state: present

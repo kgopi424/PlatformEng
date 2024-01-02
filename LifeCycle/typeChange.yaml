@@ -1,0 +1,36 @@
+---
+- name: Change the instance type based on state
+  vars:
+    regions_list: "us-east-1"
+    change_instance_to: "{{ change_instance_to }}"
+  hosts: localhost
+  tasks:
+    - name: Check instance state
+      delegate_to: localhost
+      ec2_instance_info:
+        region: "us-east-1"
+        instance_ids: "{{ ansible_ec2_instance_id }}"
+      register: instance_info
+
+    - name: Stop instance if running
+      delegate_to: localhost
+      ec2_instance:
+        region: "us-east-1"
+        instance_ids: "{{ ansible_ec2_instance_id }}"
+        state: stopped
+        wait: true
+      when: instance_info.instances[0].state.name == "running"
+
+    - name: Change instance type if stopped (again)
+      delegate_to: localhost
+      shell: >
+        aws ec2 modify-instance-attribute --instance-id {{ ansible_ec2_instance_id }} --instance-type {{ change_instance_to }} --region us-east-1
+      when: instance_info.instances[0].state.name in ['running', 'stopped']
+
+    - name: Start instance if stopped (again)
+      delegate_to: localhost
+      ec2_instance:
+        region: "us-east-1"
+        instance_ids: "{{ ansible_ec2_instance_id }}"
+        state: running
+      when: instance_info.instances[0].state.name == "running"

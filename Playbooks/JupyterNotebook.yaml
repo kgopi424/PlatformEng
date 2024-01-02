@@ -1,0 +1,46 @@
+---
+- name: Deploy Jupyter-notebook Docker container
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Installing python3
+      apt:
+        name: python3-pip
+        state: present
+
+    - name: Installing docker package using pip
+      ansible.builtin.pip:
+        name: docker
+
+    - name: Start Jupyter Docker container
+      community.docker.docker_container:
+        name: jupyter
+        image: quay.io/jupyter/datascience-notebook:2023-11-17
+        detach: yes
+        ports:
+          - "8080:8888"
+        volumes:
+          - "/home/ubuntu/jupyterData:/home/jovyan/work"
+        restart_policy: unless-stopped
+
+    - name: Wait for 5 seconds
+      pause:
+        seconds: 5
+
+    - name: Get Jupyter token
+      command: "docker exec jupyter jupyter server list"
+      register: jupyter_token
+
+    - name: Extract Jupyter token
+      set_fact:
+        jupyter_token_value: "{{ jupyter_token.stdout_lines[1] | regex_search('token=([a-f0-9]+)', '\\1') }}"
+
+    - name: Print Jupyter token
+      debug:
+        var: jupyter_token_value

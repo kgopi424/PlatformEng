@@ -1,0 +1,9 @@
+---
+- name: Install Mysql in targeted nodes
+  hosts: all
+  tasks:
+  - name: install mysql
+    become: true
+    apt:
+      name: mysql-server
+      state: present

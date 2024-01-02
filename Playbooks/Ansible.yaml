@@ -1,0 +1,16 @@
+---
+- name: Install Ansible in targeted nodes
+  hosts: all
+  become: true
+  tasks:
+    - name: Update APT cache
+      apt:
+        update_cache: yes
+    - name: Installing python3
+      apt:
+        name: python3-pip
+        state: present
+    - name: Installing ansible package using pip
+      ansible.builtin.pip:
+        name: ansible
+      

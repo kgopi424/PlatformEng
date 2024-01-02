@@ -1,0 +1,26 @@
+---
+- name: Deploy PostgresSql as Docker container
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+    - name: Installing python3
+      apt:
+        name: python3-pip
+        state: present
+    - name: Installing docker package using pip
+      ansible.builtin.pip:
+        name: docker
+    - name: Start PostgresSql as Docker container
+      community.docker.docker_container:
+        name: postgres
+        image: postgres:latest
+        detach: yes
+        env:
+          POSTGRES_PASSWORD=admin
+        ports:
+          - "5432:5432"
+        restart_policy: unless-stopped

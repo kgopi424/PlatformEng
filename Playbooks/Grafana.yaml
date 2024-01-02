@@ -1,0 +1,46 @@
+---
+- name: Install grafana on target nodes
+  hosts: all
+  tasks:
+    - name: Install apt-transport-https, software-properties-common, wget 
+      become: true
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - apt-transport-https
+        - software-properties-common
+        - wget 
+
+    - name: Download grafana repository signing key
+      shell: sudo wget -q -O /usr/share/keyrings/grafana.key https://apt.grafana.com/gpg.key
+
+    - name: Add repository
+      shell: echo "deb [signed-by=/usr/share/keyrings/grafana.key] https://apt.grafana.com stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+
+    - name: update nodes
+      become: true
+      apt:
+        update_cache: yes
+    
+    - name: Install grafana and grafana-enterprise
+      become: true
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - grafana
+        - grafana-enterprise
+      
+    - name: Get version
+      shell:  grafana-server -v
+      register: version
+
+    - name: Starting Grafana server
+      ansible.builtin.service:
+        name: grafana-server
+        state: started
+
+    - name: print version
+      debug:
+        var: version.stdout_lines

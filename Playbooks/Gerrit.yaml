@@ -1,0 +1,22 @@
+---
+- name: Gerrit installation on cluster nodes
+  hosts: all
+  tasks:
+    - name: Install git, default-jdk
+      become: true
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - git
+        - default-jdk
+    
+    - name: Dowload packages
+      shell: wget https://gerrit-releases.storage.googleapis.com/gerrit-3.5.1.war
+
+    - name: Remove stale lock files
+      shell: sudo rm /root/gerrit_example/index/groups_0008/write.lock
+
+    - name: Intialize Gerrit
+      become: true
+      shell: sudo java -jar gerrit-3.5.1.war init --batch -d ~/gerrit_example

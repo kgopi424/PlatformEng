@@ -1,0 +1,9 @@
+---
+- name: Install Python on target nodes
+  hosts: all
+  tasks:
+    - name: Install Python
+      become: true
+      apt:
+        name: python3
+        state: present

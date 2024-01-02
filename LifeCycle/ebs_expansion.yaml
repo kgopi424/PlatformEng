@@ -1,0 +1,23 @@
+---
+- name: Change volume
+  hosts: localhost
+  vars:
+    new_vol_size: "{{ new_vol_size }}"  # Change this to the desired volume size
+  tasks:
+    - name: Get EC2 instance information
+      community.aws.ec2_instance_info:
+        instance_ids:
+          - "{{ ansible_ec2_instance_id }}"
+      register: instance_info
+
+    - name: Extract volume IDs
+      set_fact:
+        volume_ids: "{{ instance_info.instances[0].block_device_mappings | map(attribute='ebs.volume_id') | list }}"
+
+    - name: Print volume IDs
+      debug:
+        var: volume_ids
+
+    - name: Resize volume
+      shell: >
+        aws ec2 modify-volume --size {{ new_vol_size }} --volume-id {{ volume_ids[0] }}

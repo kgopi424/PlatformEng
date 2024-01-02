@@ -1,0 +1,20 @@
+---
+- name: PostgreSQL installation on target nodes
+  hosts: all
+  tasks:
+    
+    - name: Install postgresql postgresql-contrib
+      become: true
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - postgresql
+        - postgresql-contrib
+
+    - name: Start service
+      become: true
+      service:
+        name: postgresql
+        state: started
+

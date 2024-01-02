@@ -1,0 +1,11 @@
+---
+- hosts: localhost
+  vars:
+    regions_list: us-east-1
+    instance_ids: "{{ansible_ec2_instance_id}}"
+  tasks:
+    - name: Start EC2 instances
+      ec2_instance:
+        region: "{{ regions_list }}"
+        instance_ids: "{{ instance_ids }}"
+        state: running

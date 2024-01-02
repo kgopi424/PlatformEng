@@ -1,0 +1,16 @@
+---
+- name: Install Django
+  hosts: all
+  become: yes  # To run tasks as sudo
+
+  tasks:
+    - name: Install pip for Python 3
+      apt:
+        name: python3-pip
+        state: present
+    - name: Install Django
+      ansible.builtin.pip:
+        name: django
+    - name: Install Djangorestframework
+      ansible.builtin.pip:
+        name: djangorestframework

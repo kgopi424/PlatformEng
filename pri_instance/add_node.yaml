@@ -1,0 +1,132 @@
+---
+- name: Install k8s on cluster nodes
+  hosts: master, worker
+  tasks:
+    - name: Update Nodes
+      shell: sudo apt update
+      when: inventory_hostname in groups['worker']
+
+    - name: Install docker
+      become: true
+      apt:
+        name: docker.io
+        state: present
+      when: inventory_hostname in groups['worker']
+
+    - name: Enable docker services
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+      when: inventory_hostname in groups['worker']
+
+    - name: Install transport https
+      become: true
+      apt:
+        name: apt-transport-https
+        state: present
+      when: inventory_hostname in groups['worker']
+
+    - name: Install curl
+      become: true
+      apt:
+        name: curl
+        state: present
+      when: inventory_hostname in groups['worker']
+
+    - name: Add k8s signing key
+      shell: curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add
+      when: inventory_hostname in groups['worker']
+
+    - name: Add k8s repo
+      shell: echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" >> ~/kubernetes.list
+      when: inventory_hostname in groups['worker']
+
+    - name: Move Files to /etc/apt/source
+      shell: sudo mv ~/kubernetes.list /etc/apt/sources.list.d
+      when: inventory_hostname in groups['worker']
+
+    - name: Update nodes
+      shell: sudo apt update
+      when: inventory_hostname in groups['worker']
+
+    - name: Install kubelet
+      become: true
+      apt:
+        name: kubelet
+        state: present
+      when: inventory_hostname in groups['worker']
+
+    - name: Install kubectl
+      become: true
+      apt:
+        name: kubectl
+        state: present
+      when: inventory_hostname in groups['worker']
+
+    - name: Install kubeadm
+      become: true
+      apt:
+        name: kubeadm
+        state: present
+      when: inventory_hostname in groups['worker']
+
+    - name: Install kubernetes-cni
+      become: true
+      apt:
+        name: kubernetes-cni
+        state: present
+      when: inventory_hostname in groups['worker']
+
+    - name: Reset old files
+      become: true
+      shell: kubeadm reset -f
+      when: inventory_hostname in groups['worker']
+
+    - name: Disabling swap memory
+      shell: sudo swapoff -a
+      when: inventory_hostname in groups['worker']
+
+    - name: Iptables See Bridged Traffic
+      shell : |
+        lsmod | grep br_netfilter
+        sudo modprobe br_netfilter
+        sudo sysctl net.bridge.bridge-nf-call-iptables=1
+      when: inventory_hostname in groups['worker']
+
+    - name: Restart and enable dokcer
+      shell: |
+        sudo systemctl enable docker
+        sudo systemctl daemon-reload
+        sudo systemctl restart docker
+      when: inventory_hostname in groups['worker']
+
+    - name: generate join command
+      delegate_to: master
+      shell: kubeadm token create --print-join-command
+      register: output
+
+    - name: set join command
+      delegate_to: master
+      set_fact:
+        join_command: "{{ output.stdout_lines[0] }}"
+
+    - name: Print joinkey
+      delegate_to: master
+      debug:
+        msg: "{{ join_command }}"
+
+    - name: join worker to master
+      become: true
+      shell: "{{ join_command }}"
+      when: inventory_hostname in groups['worker']
+
+    - name: Get Nodes Data
+      shell: kubectl get nodes
+      register: nodes
+      when: inventory_hostname in ['master']
+
+    - name: Display Nodes status
+      debug:
+        var: nodes
+      when: inventory_hostname in ['master']

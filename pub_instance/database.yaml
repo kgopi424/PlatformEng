@@ -1,0 +1,19 @@
+- name: Store IPs in SQL
+  hosts: localhost
+  gather_facts: yes
+  tasks:
+    - name: Gather IP addresses from Terraform outputs
+      command: terraform output -json jump_Box_Public_ips
+      register: terraform_output
+      changed_when: false
+      check_mode: no
+
+    - name: Extract public IPs
+      set_fact:
+        public_ips : "{{ terraform_output.stdout | from_json }}"
+
+    - name: Insert IP addresses into SQL database
+      shell: |
+        PGPASSWORD=admin123 psql -h localhost -U postgres -c "INSERT INTO public_ips (address) VALUES ('{{ item }}'); "
+      with_items: "{{ public_ips }}"
+

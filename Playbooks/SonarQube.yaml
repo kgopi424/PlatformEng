@@ -1,0 +1,17 @@
+---
+- name: Install sonarqube
+  hosts: all
+  become: true
+  tasks:
+    - name: Docker install
+      apt: 
+        name: docker.io
+        state: present
+    
+    - name: sonarqube Container Creating
+      community.docker.docker_container:
+        name: sonarqube
+        image: sonarqube
+        state: started
+        ports:
+        - "9000:9000"

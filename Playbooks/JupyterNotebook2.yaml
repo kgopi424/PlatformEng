@@ -1,0 +1,40 @@
+- name: Deploy Jupyter-notebook Docker container
+  hosts: all
+  become: yes
+  tasks:
+    - name: Installing python3 and pip
+      apt:
+        name: 
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Installing JupyterNotebook package using pip
+      ansible.builtin.pip:
+        name: jupyter
+        state: present
+
+    - name: Get the host IP address
+      ansible.builtin.debug:
+        msg: "Host IP is {{ ansible_host }}"
+
+    - name: Run Jupyter Notebook
+      shell: |
+        nohup jupyter notebook --ip {{ ansible_host }} --port 8080 --allow-root --no-browser > /dev/null 2>&1 &
+      async: 1
+      poll: 0
+
+    - name: Wait for Jupyter Notebook to start
+      wait_for:
+        host: "{{ ansible_host }}"
+        port: 8080
+        delay: 10
+        timeout: 30
+      become: yes 
+    - name: Get Jupyter token
+      shell: "jupyter server list | cut -d ':' -f 3| tr '/?' ' '"
+      register: jupyter_token
+
+    - name: Print Jupyter token
+      debug:
+        var: jupyter_token.stdout_lines

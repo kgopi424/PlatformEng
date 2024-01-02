@@ -1,0 +1,9 @@
+---
+- name: Install jenkins in target nodes
+  hosts: all
+  tasks:
+    - name: Install curl, openjdk
+      become: true
+      apt:
+        name: openjdk-17-jre
+        state: present

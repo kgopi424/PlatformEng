@@ -1,0 +1,99 @@
+---
+- name: Install nexus
+  hosts: all
+  become: true
+  tasks:
+  - name: Install openjdk
+    apt:
+      name: openjdk-8-jre-headless
+      state: present
+
+  - name: Download packages
+    shell: sudo wget https://download.sonatype.com/nexus/3/latest-unix.tar.gz
+
+  - name: Extract files
+    shell: sudo tar -zxvf latest-unix.tar.gz
+
+  - name: remove old files
+    shell: 
+      sudo rm -rf /opt/nexus/nexus-3.60.0-02
+      sudo rm -rf /opt/sonatype-work
+
+  - name: Move files
+    shell: |
+      sudo mv nexus-3.60.0-02 /opt/nexus
+      sudo mv sonatype-work/ /opt/
+
+  - name: Check if Nexus user exists
+    command: getent passwd nexus
+    register: user_check
+    ignore_errors: yes
+
+  - name: Create Nexus user
+    user:
+        name: nexus
+        comment: ""
+        shell: /bin/bash
+        home: /home/nexus
+        state: present
+    when: user_check.rc != 0
+
+  - name: Add sudoers entry for the nexus user
+    lineinfile:
+      path: /etc/sudoers
+      line: 'nexus ALL=(ALL) NOPASSWD: ALL'
+      validate: 'visudo -cf %s'
+    become_user: root
+
+  - name: Add permissions
+    shell: |
+        sudo chown -R nexus:nexus /opt/nexus
+        sudo chown -R nexus:nexus /opt/sonatype-work
+
+  - name: Add line run user
+    become: true
+    copy:
+      content: |
+          run_as_user="nexus"
+      dest: /opt/nexus/bin/nexus.rc
+
+  - name: Add config files
+    become: true
+    copy:
+      content: |
+          [Unit]
+          Description=nexus service
+          After=network.target
+
+          [Service]
+          Type=forking
+          LimitNOFILE=65536
+          ExecStart=/opt/nexus/bin/nexus start
+          ExecStop=/opt/nexus/bin/nexus stop
+          User=nexus
+          Restart=on-abort
+
+          [Install]
+          WantedBy=multi-user.target
+      dest: /etc/systemd/system/nexus.service
+
+  - name: Start service
+    service:
+      name: nexus
+      state: started
+
+  - name: Enable service
+    shell: sudo systemctl enable nexus
+
+  - name: allow port 
+    shell: sudo ufw allow 8081/tcp
+
+  - name: Get status
+    shell: sudo systemctl status nexus
+    register: info 
+
+  - name: show status
+    debug:
+      var: info 
+
+    
